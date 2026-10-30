@@ -1,8 +1,6 @@
 # 🧠 MRI Brain Tumor — Classification & Object Detection
 
-> **⚠️ Disclaimer:** This project is a **pedagogical prototype** and does **not** constitute a medical diagnostic tool. Results must not be used for clinical decision-making.
-
----
+> **⚠️ Disclaimer:** This project is an educational prototype. It is not a medical diagnostic tool, and its results must not be used for clinical decision-making.
 
 ## 📋 Table of Contents
 
@@ -11,181 +9,208 @@
 3. [Dataset](#dataset)
 4. [Project Structure](#project-structure)
 5. [Installation](#installation)
-6. [Pipeline Overview](#pipeline-overview)
-7. [Step-by-Step Results](#step-by-step-results)
-   - [Data Exploration](#step-1--data-exploration--preparation)
-   - [Preprocessing & Augmentation](#step-2--preprocessing--data-augmentation)
-   - [Transfer Learning — Classification](#step-3--classification-by-transfer-learning)
-   - [Overfitting Prevention](#step-4--overfitting-prevention)
-   - [YOLOv8 Detection](#step-5--object-detection-with-yolov8)
-   - [Model Evaluation](#step-6--model-evaluation)
-8. [Usage](#usage)
-9. [Docker](#docker)
+6. [Data Preparation](#data-preparation)
+7. [Models and Methodology](#models-and-methodology)
+8. [Evaluation Results](#evaluation-results)
+9. [Usage](#usage)
 10. [Airflow Pipeline](#airflow-pipeline)
 11. [Streamlit Interface](#streamlit-interface)
-12. [Limitations](#limitations)
-13. [Author](#author)
+12. [Docker](#docker)
+13. [Limitations](#limitations)
+14. [Future Improvements](#future-improvements)
 
 ---
 
 ## Project Overview
 
-This project develops a **Deep Learning prototype** for two complementary tasks on brain MRI images:
+This project explores two Deep Learning tasks using brain MRI images:
 
-| Task | Goal | Model |
+| Task | Objective | Model |
 |---|---|---|
-| **Classification** | Predict the tumor category (4 classes) | MobileNetV2 + Transfer Learning |
-| **Detection** | Localize tumor regions with bounding boxes | YOLOv8n (Ultralytics) |
+| **Classification** | Classify an MRI image into one of four categories | MobileNetV2 |
+| **Object Detection** | Locate tumor regions using bounding boxes | YOLOv8n |
 
-**Four categories:** `Glioma` · `Meningioma` · `No Tumor` · `Pituitary`
+The four classification categories are:
 
-Key techniques applied:
-- Transfer Learning & Fine-tuning (ImageNet → MRI domain)
-- Data Augmentation (geometric + photometric)
-- Overfitting prevention: Dropout, Early Stopping, L2 regularization, ReduceLROnPlateau
-- YOLOv8 with YOLO-format bounding box annotations
-- Evaluation: Accuracy, F1-score, Confusion Matrix, mAP50, IoU
+- Glioma
+- Meningioma
+- No Tumor
+- Pituitary
+
+### Technologies
+
+- Python
+- TensorFlow / Keras
+- PyTorch
+- Ultralytics YOLOv8
+- MobileNetV2
+- OpenCV
+- NumPy
+- Scikit-learn
+- Matplotlib
+- Albumentations
+
+Planned integration technologies:
+
+- Apache Airflow
+- Streamlit
+- Docker
 
 ---
 
 ## Architecture
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                      Raw MRI Dataset                         │
-│          (Kaggle — 4 classes + bounding box XML)             │
-└───────────────────────────┬──────────────────────────────────┘
-                            │
-                 ┌──────────▼──────────┐
-                 │  Data Preparation   │
-                 │  (train/val/test)   │
-                 └──────┬──────┬───────┘
-                        │      │
-          ┌─────────────▼─┐  ┌─▼─────────────────┐
-          │ Classification│  │   Detection        │
-          │  Pipeline     │  │   Pipeline         │
-          │               │  │                    │
-          │ MobileNetV2   │  │  YOLOv8n           │
-          │ + Fine-tuning │  │  (YOLO format)     │
-          │ + Regulariz.  │  │  3 classes          │
-          └───────┬───────┘  └──────────┬─────────┘
-                  │                     │
-          ┌───────▼─────────────────────▼─────────┐
-          │          Evaluation & Results          │
-          │  Accuracy / F1 / mAP50 / IoU / Plots  │
-          └───────────────────┬───────────────────┘
-                              │
-          ┌───────────────────▼───────────────────┐
-          │          Streamlit Interface           │
-          │  Upload → Classify → Detect → Display │
-          └───────────────────────────────────────┘
-                              │
-          ┌───────────────────▼───────────────────┐
-          │     Airflow DAG (Orchestration)        │
-          │  preprocess → train → evaluate → save  │
-          └───────────────────────────────────────┘
-                              │
-          ┌───────────────────▼───────────────────┐
-          │     Docker (Containerization)          │
-          │     Streamlit + Airflow services       │
-          └───────────────────────────────────────┘
+The project contains two model pipelines that share the prepared MRI dataset.
+
+```text
+                 Raw MRI Dataset
+                        |
+                 Data Preparation
+                        |
+              Train / Validation / Test
+                        |
+             +----------+----------+
+             |                     |
+       Classification         Detection
+             |                     |
+         MobileNetV2             YOLOv8n
+             |                     |
+       4 Classes               3 Classes
+             |                     |
+             +----------+----------+
+                        |
+                  Model Evaluation
+                        |
+             Metrics, Reports and Plots
+                        |
+              Application Integration
+                (Planned / In Progress)
+                        |
+             +----------+----------+
+             |                     |
+          Streamlit             Airflow
+             |                     |
+             +----------+----------+
+                        |
+                      Docker
 ```
 
 ---
 
 ## Dataset
 
-**Source:** [MRI for Brain Tumor with Bounding Boxes](https://www.kaggle.com/datasets/ahmedsorour1/mri-for-brain-tumor-with-bounding-boxes)
+**Source:** [MRI for Brain Tumor with Bounding Boxes — Kaggle](https://www.kaggle.com/datasets/ahmedsorour1/mri-for-brain-tumor-with-bounding-boxes)
 
-| Class | Role in Classification | Role in Detection |
+The dataset contains 5,249 MRI images across four categories.
+
+### Classification and detection classes
+
+| Class | Classification | Object Detection |
 |---|---|---|
-| Glioma | ✅ Yes | ✅ Yes |
-| Meningioma | ✅ Yes | ✅ Yes |
-| No Tumor | ✅ Yes | ❌ Excluded (no annotated region) |
-| Pituitary | ✅ Yes | ✅ Yes |
+| Glioma | Yes | Yes |
+| Meningioma | Yes | Yes |
+| No Tumor | Yes | Excluded |
+| Pituitary | Yes | Yes |
 
-> **Note on "No Tumor":** This class is kept for classification (4 classes). Since no bounding-box region is annotated for it, it is excluded from the detection task (3 classes: Glioma, Meningioma, Pituitary).
+**Important — No Tumor:** This class is retained in the four-class classification task. It is excluded from object detection because it has no tumor region to localize. Its detection annotation files are empty.
+
+### Dataset split
+
+The original training data was divided to create a separate test set. The original validation set was retained.
+
+| Split | Images |
+|---|---:|
+| Training | 4,026 |
+| Validation | 512 |
+| Test | 711 |
+| **Total** | **5,249** |
+
+The test set was separated from the original training data before model training and evaluation.
 
 ### Downloading the dataset
 
-```bash
-# Install Kaggle CLI
-pip install kaggle
+Install the Kaggle CLI:
 
-# Configure your API key (~/.kaggle/kaggle.json)
+```bash
+pip install kaggle
+```
+
+Configure your Kaggle API credentials, then download the dataset:
+
+```bash
 kaggle datasets download -d ahmedsorour1/mri-for-brain-tumor-with-bounding-boxes
-unzip mri-for-brain-tumor-with-bounding-boxes.zip -d data/raw/
+```
+
+Extract the archive into:
+
+```text
+data/raw/MRI_Dataset/
 ```
 
 ---
 
 ## Project Structure
 
+The following represents the intended organization of the project. Some integration folders and files may still be under development.
+
 ```text
-projet-mri-deep-learning/
+OBJECT DETECTION MRI DEEP LEARNING/
 │
 ├── data/
-│   ├── raw/                        # Original Kaggle dataset
+│   ├── raw/
+│   │   └── MRI_Dataset/
 │   ├── processed/
-│   │   ├── classification/         # train / val / test splits (4 classes)
-│   │   └── detection/              # YOLO-format dataset (3 classes)
 │   └── processed_v2/
-│       └── detection/              # Refined detection dataset + data.yaml
+│       ├── classification/
+│       └── detection/
+│           ├── images/
+│           ├── labels/
+│           └── data.yaml
 │
 ├── notebooks/
-│   ├── data_exploration.py         # EDA, class distribution, annotation checks
-│   └── preprocessing_augmentation.py # Augmentation pipeline demo
 │
 ├── src/
 │   ├── classification/
-│   │   ├── model.py                # MobileNetV2 architecture builder
-│   │   ├── trainfeatureE.py        # Phase 1: feature extraction (frozen backbone)
-│   │   ├── trainfineT.py           # Phase 2: fine-tuning (baseline)
-│   │   ├── trainfineT_aug.py       # Fine-tuning with augmentation config
-│   │   ├── trainfineT_l2.py        # Fine-tuning with L2 regularization
-│   │   └── evaluate.py             # Classification evaluation (metrics + plots)
+│   │   ├── model.py
+│   │   ├── trainfeatureE.py
+│   │   ├── trainfineT.py
+│   │   ├── trainfineT_aug.py
+│   │   ├── trainfineT_l2.py
+│   │   └── evaluate.py
 │   │
 │   └── detection/
-│       ├── check_dataset.py        # Annotation integrity checks (v1)
-│       ├── check_dataset_v2.py     # Refined annotation checks (v2)
-│       ├── prepare_dataset_v2.py   # Convert XML → YOLO format, split dataset
-│       ├── train.py                # YOLOv8 training entry point
-│       └── evaluate.py             # YOLOv8 evaluation on test set
+│       ├── check_dataset.py
+│       ├── check_dataset_v2.py
+│       ├── prepare_dataset_v2.py
+│       ├── train.py
+│       └── evaluate.py
 │
 ├── models/
 │   └── classification/
-│       ├── mobilenetv2_best.keras              # Feature extraction checkpoint
-│       ├── mobilenetv2_finetuned_best.keras    # Fine-tuned baseline
-│       ├── mobilenetv2_finetuned_aug_best.keras # Fine-tuned with augmentation
-│       └── mobilenetv2_finetuned_l2_best.keras  # Fine-tuned with L2 reg
+│       └── mobilenetv2_finetuned_aug_best.keras
 │
 ├── results/
 │   ├── classification/
-│   │   ├── augmentation/           # Learning curves (aug config)
-│   │   ├── l2/                     # Learning curves (L2 config)
-│   │   └── final_evaluation/       # Confusion matrix + classification report
+│   │   └── final_evaluation/
 │   ├── detection/
-│   │   └── yolov8n_mri-2/         # YOLOv8 training outputs (curves, weights)
+│   │   └── yolov8n_mri-2/
 │   └── evaluation/
-│       └── yolo_test/              # YOLOv8 test set evaluation
+│       └── yolo_test/
+│           ├── test_metrics.csv
+│           ├── test_metrics.txt
+│           └── confusion_matrix.png
 │
-├── dashboard/                      # Streamlit application
-│   └── app.py
+├── dashboard/              # Planned: Streamlit
+├── dags/                   # Planned: Airflow
+├── tests/                  # Planned: automated tests
 │
-├── dags/                           # Apache Airflow DAGs
-│   └── mri_pipeline.py
-│
-├── tests/                          # Unit & integration tests
-│   ├── test_preprocessing.py
-│   ├── test_annotations.py
-│   └── test_inference.py
-│
-├── yolov8n.pt                      # YOLOv8n pretrained weights (ImageNet)
-├── Dockerfile
-├── docker-compose.yml
+├── Dockerfile              # Planned
+├── docker-compose.yml      # Planned
 ├── requirements.txt
 └── README.md
 ```
+
+**Note:** Large datasets, model weights and generated results do not need to be committed to Git. Their download and reproduction instructions should be documented.
 
 ---
 
@@ -193,311 +218,314 @@ projet-mri-deep-learning/
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.10 or later, subject to library compatibility
 - Git
-- (Optional) NVIDIA GPU with CUDA for faster training
+- NVIDIA GPU (optional)
+- NVIDIA-compatible PyTorch installation for GPU training
 
-### Local Setup
+### Create a virtual environment
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/<your-username>/projet-mri-deep-learning.git
-cd projet-mri-deep-learning
-
-# 2. Create and activate a virtual environment
 python -m venv .venv
-# Windows
-.venv\Scripts\activate
-# Linux / macOS
-source .venv/bin/activate
+```
 
-# 3. Install dependencies
+Activate it on Windows:
+
+```powershell
+.venv\Scripts\activate
+```
+
+Install project dependencies:
+
+```bash
 pip install -r requirements.txt
 ```
 
-### `requirements.txt` — Key Dependencies
+### Main libraries
 
-```
-tensorflow>=2.13
-ultralytics>=8.0
-streamlit>=1.28
-apache-airflow>=2.7
-opencv-python
-matplotlib
-seaborn
-scikit-learn
-pandas
-numpy
-kaggle
-```
-
----
-
-## Pipeline Overview
-
-```
-J1  ─── Data exploration & annotation verification
-J2  ─── Preprocessing, splits, augmentation pipeline
-J3  ─── Transfer Learning: MobileNetV2 feature extraction
-J4  ─── Fine-tuning, regularization, classification evaluation
-J5  ─── Annotation conversion (XML → YOLO), dataset prep
-J6  ─── YOLOv8 training, evaluation, error analysis
-J7  ─── Airflow DAG implementation
-J8  ─── Streamlit interface development
-J9  ─── Docker integration & tests
-J10 ─── Documentation, final review & demo
-```
-
----
-
-## Step-by-Step Results
-
-### Step 1 — Data Exploration & Preparation
-
-- Verified all image files and bounding-box XML annotations across all 4 categories.
-- Detected and removed corrupted files and inconsistent annotations (negative coordinates, out-of-bounds boxes).
-- Confirmed annotation format: Pascal VOC XML → converted to normalized YOLO format `(class_id, cx, cy, w, h)`.
-- Applied stratified splitting to ensure class balance across splits:
-
-| Split | Proportion |
+| Library | Purpose |
 |---|---|
-| Train | 70% |
-| Validation | 15% |
-| Test | 15% |
+| TensorFlow / Keras | Image classification |
+| PyTorch | YOLO model execution |
+| Ultralytics | YOLOv8 training and evaluation |
+| NumPy | Numerical operations |
+| OpenCV | Image processing |
+| Pillow | Image loading and resizing |
+| Scikit-learn | Classification metrics |
+| Matplotlib | Visualization |
+| PyYAML | YOLO configuration |
 
-> No data leakage: splits are performed at the image level before any augmentation.
-
----
-
-### Step 2 — Preprocessing & Data Augmentation
-
-| Operation | Train | Val / Test |
-|---|---|---|
-| Resize | 224×224 (classif.) / 512×512 (detection) | Same |
-| Normalization | `[0, 1]` (MobileNetV2 preprocessing) | Same |
-| Random Rotation | ±15° | ❌ |
-| Random Zoom | 10% | ❌ |
-| Horizontal Flip | Yes | ❌ |
-| Contrast Adjustment | Moderate | ❌ |
-| Bounding Box Adaptation | Applied to all geometric transforms | — |
-
-> Validation and test sets use **deterministic** preprocessing only (resize + normalize).
+Install Apache Airflow separately in its Docker environment when implementing the orchestration pipeline.
 
 ---
 
-### Step 3 — Classification by Transfer Learning
+## Data Preparation
 
-**Model:** MobileNetV2 pretrained on ImageNet
+The preprocessing stage prepares separate datasets for classification and object detection.
 
-**Two-phase training:**
+### Classification
 
-1. **Feature Extraction** — Backbone frozen, only the classification head trained.
-2. **Fine-tuning** — Last N layers of the backbone unfrozen, trained with a lower learning rate.
+- Four categories are retained.
+- Images are resized to **384 × 384**.
+- MobileNetV2 preprocessing is applied during model input preparation.
+- Training, validation and test data are kept separate.
 
-**Architecture (head):**
+### Object Detection
+
+- Three tumor classes are used.
+- Images are resized to **512 × 512** while preserving their aspect ratio through letterboxing.
+- Bounding-box coordinates are adjusted to match the resized images.
+- Annotations use the YOLO format:
+
+```text
+class_id x_center y_center width height
 ```
+
+Coordinates are normalized between 0 and 1.
+
+The detection dataset configuration is stored in `data.yaml`.
+
+---
+
+## Models and Methodology
+
+### 1. Classification — MobileNetV2
+
+**Base model:** MobileNetV2 pretrained on ImageNet.
+
+Transfer Learning is used to adapt the pretrained network to the MRI classification task.
+
+The training approach includes:
+
+1. Feature extraction: freeze the pretrained backbone and train the classification head.
+2. Fine-tuning: unfreeze selected backbone layers and continue training with a lower learning rate.
+
+The classification head uses:
+
+```text
 GlobalAveragePooling2D
-→ Dense(256, activation='relu') + L2
-→ Dropout(0.4)
-→ Dense(4, activation='softmax')
+        |
+Dense(256, ReLU)
+        |
+Dropout(0.4)
+        |
+Dense(4, Softmax)
 ```
 
----
+### 2. Overfitting Prevention
 
-### Step 4 — Overfitting Prevention
+The following techniques were explored:
 
-Four configurations were compared:
-
-| Config | Dropout | L2 | Augmentation | Val Accuracy |
-|---|---|---|---|---|
-| Baseline fine-tune | 0.4 | ❌ | Minimal | ~94% |
-| + Augmentation | 0.4 | ❌ | Full | ~95% |
-| + L2 regularization | 0.4 | 1e-4 | Full | ~96% |
-
-**Techniques applied:**
-
-| Technique | Configuration |
+| Technique | Purpose |
 |---|---|
-| Data Augmentation | rotation, zoom, flip, contrast |
-| Dropout | rate = 0.4 |
-| Early Stopping | patience = 5, monitor = `val_loss` |
-| ModelCheckpoint | save best model on `val_accuracy` |
-| ReduceLROnPlateau | factor = 0.5, patience = 3 |
-| L2 Regularization | λ = 1e-4 |
+| Data Augmentation | Increase training-data variation |
+| Dropout | Reduce dependence on individual neurons |
+| L2 Regularization | Penalize excessively large weights |
+| Early Stopping | Stop training when validation performance stops improving |
+| Model Checkpoint | Save the best-performing model |
+| ReduceLROnPlateau | Reduce the learning rate when progress stagnates |
 
----
+### 3. Object Detection — YOLOv8n
 
-### Step 5 — Object Detection with YOLOv8
+**Model:** YOLOv8n pretrained on COCO.
 
-**Model:** `YOLOv8n` (nano) — pretrained on COCO
-
-**Training configuration:**
+Training configuration:
 
 | Parameter | Value |
-|---|---|
+|---|---:|
 | Epochs | 50 |
-| Patience (early stop) | 10 |
-| Image size | 512×512 |
+| Patience | 10 |
+| Image size | 512 × 512 |
 | Batch size | 8 |
-| Optimizer | Auto (AdamW) |
-| IoU threshold | 0.7 |
-| Classes | 3 (Glioma, Meningioma, Pituitary) |
+| Detection classes | 3 |
+| Model checkpoint | `best.pt` |
 
-**Augmentations (built-in Ultralytics):**
+The trained model is saved at:
 
-```
-HSV shift, Mosaic (1.0), Horizontal flip (0.5),
-Scale (0.5), Random Erasing (0.4), RandAugment
+```text
+results/detection/yolov8n_mri-2/weights/best.pt
 ```
 
 ---
 
-### Step 6 — Model Evaluation
+## Evaluation Results
 
-#### 📊 Classification — Final Test Results
+Both models were evaluated using a separate test set.
+
+### Classification — Test Results
 
 | Class | Precision | Recall | F1-score | Support |
-|---|---|---|---|---|
-| Glioma | 0.955 | 0.977 | **0.966** | 173 |
-| Meningioma | 0.976 | 0.931 | **0.953** | 217 |
-| No Tumor | 0.971 | 0.953 | **0.962** | 107 |
-| Pituitary | 0.964 | 1.000 | **0.982** | 214 |
+|---|---:|---:|---:|---:|
+| Glioma | 0.955 | 0.977 | 0.966 | 173 |
+| Meningioma | 0.976 | 0.931 | 0.953 | 217 |
+| No Tumor | 0.971 | 0.953 | 0.962 | 107 |
+| Pituitary | 0.964 | 1.000 | 0.982 | 214 |
 | **Overall** | **0.967** | **0.966** | **0.966** | **711** |
 
-> **Test Accuracy: 96.62%**
+**Test Accuracy: 96.62%**
 
-#### 🎯 Detection — YOLOv8 Test Results
+### Object Detection — YOLOv8 Test Results
 
 | Metric | Overall | Glioma | Meningioma | Pituitary |
-|---|---|---|---|---|
-| Precision | **0.919** | 0.889 | 0.954 | 0.913 |
-| Recall | **0.877** | 0.758 | 0.982 | 0.892 |
-| mAP@50 | **0.940** | 0.874 | 0.989 | 0.957 |
-| mAP@50-95 | **0.735** | 0.643 | 0.838 | 0.723 |
+|---|---:|---:|---:|---:|
+| Precision | 0.919 | 0.889 | 0.954 | 0.913 |
+| Recall | 0.877 | 0.758 | 0.982 | 0.892 |
+| mAP@50 | 0.940 | 0.874 | 0.989 | 0.957 |
+| mAP@50–95 | 0.735 | 0.643 | 0.838 | 0.723 |
 
-> Best performance on **Meningioma** (mAP50 = 0.989). **Glioma** shows lower recall (0.758), likely due to diffuse, irregular boundaries.
+**Interpretation:**
+
+- Meningioma achieved the strongest detection results.
+- Glioma had the lowest recall, meaning some annotated tumor regions were missed.
+- The overall mAP@50 was 0.940.
+- The overall mAP@50–95 was 0.735.
+
+These results describe performance on this dataset and do not establish clinical reliability.
+
+### Evaluation outputs
+
+YOLO test evaluation outputs are stored in:
+
+```text
+results/evaluation/yolo_test/
+```
+
+The folder includes evaluation plots and, when generated by the evaluation script:
+
+- `confusion_matrix.png`
+- `confusion_matrix_normalized.png`
+- `PR_curve.png`
+- `F1_curve.png`
+- `test_metrics.csv`
+- `test_metrics.txt`
+
+Classification evaluation outputs are stored in:
+
+```text
+results/classification/final_evaluation/
+```
 
 ---
 
 ## Usage
 
-### 1. Data Preparation
+### 1. Dataset preparation
 
 ```bash
-# Explore the dataset
-python notebooks/data_exploration.py
-
-# Prepare classification splits
-python src/classification/model.py
-
-# Convert annotations and prepare YOLO dataset
 python src/detection/prepare_dataset_v2.py
-
-# Verify YOLO annotations
 python src/detection/check_dataset_v2.py
 ```
 
-### 2. Classification Training
+Run the classification and detection preprocessing scripts according to their actual configurations before training.
+
+### 2. Classification training
 
 ```bash
-# Phase 1: Feature extraction
 python src/classification/trainfeatureE.py
-
-# Phase 2: Fine-tuning (baseline)
 python src/classification/trainfineT.py
-
-# Phase 2: Fine-tuning + augmentation
 python src/classification/trainfineT_aug.py
-
-# Phase 2: Fine-tuning + L2 regularization
 python src/classification/trainfineT_l2.py
+```
 
-# Evaluate on test set
+### 3. Classification evaluation
+
+```bash
 python src/classification/evaluate.py
 ```
 
-### 3. Detection Training
+### 4. YOLOv8 training
 
 ```bash
-# Train YOLOv8
 python src/detection/train.py
+```
 
-# Evaluate on test set
+### 5. YOLOv8 test evaluation
+
+```bash
 python src/detection/evaluate.py
 ```
 
-### 4. Launch Streamlit Interface
-
-```bash
-streamlit run dashboard/app.py
-```
-
----
-
-## Docker
-
-### Build & Run
-
-```bash
-# Build and start all services
-docker-compose up --build
-
-# Services:
-#   - Streamlit   → http://localhost:8501
-#   - Airflow     → http://localhost:8080
-```
-
-### `docker-compose.yml` Services
-
-```yaml
-services:
-  streamlit:
-    build: .
-    ports:
-      - "8501:8501"
-    volumes:
-      - ./models:/app/models
-      - ./results:/app/results
-
-  airflow:
-    image: apache/airflow:2.7.0
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./dags:/opt/airflow/dags
-```
-
-> Model weights and results are mounted as volumes — no retraining needed on container restart.
+The evaluation script loads the saved `best.pt` checkpoint and evaluates it on the test split. It does not retrain the model.
 
 ---
 
 ## Airflow Pipeline
 
-The `dags/mri_pipeline.py` DAG automates the full ML workflow:
+**Status: Planned / In Progress**
 
-```
-[check_data] → [preprocess] → [train_classifier] → [train_yolo]
-                                      ↓                   ↓
-                              [eval_classifier]   [eval_yolo]
-                                      └─────────┬─────────┘
-                                          [save_metrics]
+Apache Airflow will be used to orchestrate the machine learning workflow through a Directed Acyclic Graph (DAG).
+
+The planned workflow is:
+
+```text
+check_dataset
+      |
+preprocess_data
+      |
+  +---+---+
+  |       |
+train_   train_
+classifier yolo
+  |       |
+evaluate evaluate
+classifier yolo
+  |       |
+  +---+---+
+      |
+ save_metrics
 ```
 
-**Access Airflow UI:** `http://localhost:8080`  
-Default credentials: `admin` / `admin`
+The DAG will manage:
+
+- Task dependencies
+- Execution order
+- Task failures and retries
+- Training and evaluation execution
+- Saving metrics and generated results
 
 ---
 
 ## Streamlit Interface
 
-**Access:** `http://localhost:8501`
+**Status: Planned / In Progress**
 
-**Features:**
-- 📤 Upload a brain MRI image
-- 🏷️ Display predicted category + class probabilities (bar chart)
-- 📦 Visualize detection bounding boxes with confidence scores
-- 📈 Browse training metrics and evaluation results
-- 🔁 Models loaded once at startup — no retraining on each interaction
+The planned Streamlit application will provide an interface for interacting with the trained models.
+
+Expected features:
+
+- Upload an MRI image.
+- Display the predicted classification category.
+- Display the probability of each classification category.
+- Visualize YOLO bounding boxes.
+- Display detection confidence scores.
+- Consult saved evaluation metrics and results.
+
+The application will load saved model checkpoints rather than retraining models during user interactions.
+
+---
+
+## Docker
+
+**Status: Planned / In Progress**
+
+Docker will be used to package the application and its dependencies.
+
+The planned components are:
+
+| Component | Purpose |
+|---|---|
+| Streamlit | User interface |
+| Airflow | Workflow orchestration |
+| Docker Compose | Manage application services |
+
+Expected configuration files:
+
+```text
+Dockerfile
+docker-compose.yml
+```
+
+Docker Compose will manage service configuration, ports, volumes and dependencies.
 
 ---
 
@@ -505,21 +533,12 @@ Default credentials: `admin` / `admin`
 
 | Limitation | Description |
 |---|---|
-| Dataset size | Moderate size; results may not generalize to clinical-grade data |
-| "No Tumor" detection | Excluded from detection (no annotated region available) |
-| Glioma recall | Lower recall (0.758) due to irregular tumor boundaries |
-| Hardware | Trained on CPU; GPU would significantly reduce training time |
-| Scope | Prototype only — not validated for clinical use |
+| Dataset | Results depend on the dataset's size, quality and distribution. |
+| No Tumor detection | No Tumor is included in classification but excluded from detection. |
+| Glioma detection | Glioma has lower recall than the other detection classes. |
+| Generalization | Performance on this dataset does not guarantee performance on other MRI datasets. |
+| Clinical use | The models are educational prototypes and are not clinically validated. |
 
 ---
 
-## Author
-
-**Idriss Aharhar**  
-Certification RNCP — Développeur·se en Intelligence Artificielle  
-Project period: 19/10 → 30/10/2026
-
----
-
-> *This prototype is for educational purposes only and must not be presented as a medical diagnostic tool.*
 

@@ -1,6 +1,5 @@
 
 from pathlib import Path
-import csv
 
 from ultralytics import YOLO
 
@@ -24,47 +23,6 @@ DATA_YAML = (
     / "data.yaml"
 )
 
-OUTPUT_DIR = PROJECT_DIR / "results" / "evaluation"
-CSV_PATH = OUTPUT_DIR / "yolo_test" / "test_metrics.csv"
-
-
-def save_results_csv(results):
-    CSV_PATH.parent.mkdir(parents=True, exist_ok=True)
-
-    metrics = results.box
-
-    with open(CSV_PATH, "w", newline="", encoding="utf-8") as file:
-        writer = csv.writer(file)
-
-        writer.writerow([
-            "Class",
-            "Precision",
-            "Recall",
-            "mAP50",
-            "mAP50-95"
-        ])
-
-        # Overall results
-        writer.writerow([
-            "All",
-            metrics.mp,
-            metrics.mr,
-            metrics.map50,
-            metrics.map
-        ])
-
-        # Results for each class
-        for class_id, class_name in results.names.items():
-            writer.writerow([
-                class_name,
-                metrics.p[class_id],
-                metrics.r[class_id],
-                metrics.ap50[class_id],
-                metrics.ap[class_id]
-            ])
-
-    print(f"\nCSV saved: {CSV_PATH}")
-
 
 def evaluate_model():
     if not MODEL_PATH.exists():
@@ -79,7 +37,7 @@ def evaluate_model():
         batch=8,
         device=0,
         plots=True,
-        project=str(OUTPUT_DIR),
+        project=str(PROJECT_DIR / "results" / "evaluation"),
         name="yolo_test"
     )
 
@@ -88,8 +46,6 @@ def evaluate_model():
     print(f"Recall: {results.box.mr:.4f}")
     print(f"mAP50: {results.box.map50:.4f}")
     print(f"mAP50-95: {results.box.map:.4f}")
-
-    save_results_csv(results)
 
 
 if __name__ == "__main__":

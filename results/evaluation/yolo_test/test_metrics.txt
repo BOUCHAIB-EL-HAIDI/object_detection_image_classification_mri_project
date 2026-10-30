@@ -1,0 +1,28 @@
+YOLOv8 Test Evaluation Results
+===================================
+
+Precision: 0.9186
+Recall: 0.8770
+mAP50: 0.9396
+mAP50-95: 0.7348
+
+Class-specific Results
+-----------------------------------
+
+Glioma
+Precision: 0.8892
+Recall: 0.7575
+mAP50: 0.8739
+mAP50-95: 0.6434
+
+Meningioma
+Precision: 0.9538
+Recall: 0.9817
+mAP50: 0.9886
+mAP50-95: 0.8381
+
+Pituitary
+Precision: 0.9128
+Recall: 0.8920
+mAP50: 0.9565
+mAP50-95: 0.7230

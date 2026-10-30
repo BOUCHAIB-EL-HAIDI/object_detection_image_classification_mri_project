@@ -1,0 +1,8 @@
+path: C:/Users/ycode/Desktop/OBJECT DETECTION MRI DEEP LEARNING/data/processed/detection
+train: images/train
+val: images/val
+test: images/test
+names:
+  0: Glioma
+  1: Meningioma
+  2: Pituitary
